@@ -23,17 +23,9 @@ app.get("/api/songs", (req, res) => {
 // /api/course/1
 
 app.post("/api/songs", (req, res) => {
-  const schema = {
-    name: Joi.string().alphanum().min(3).required(),
-  };
-
-  const result = Joi.validate(req.body, schema);
-
-  console.log(result);
-
-  if (result.error) {
-    //400 Bad Request
-    res.status(400).send(result.error.details[0].message);
+  const { error } = validateSong(req.body);
+  if (error) {
+    res.status(400).send(error.details[0].message);
     return;
   }
 
@@ -49,9 +41,57 @@ app.get("/api/songs/:id", (req, res) => {
   const song = songs.find((s) => s.id == parseInt(req.params.id));
   if (!song) {
     res.status(404).send("This song id does not exist");
+    return;
   }
   res.send(song);
 });
+
+app.put("/api/songs/:id", (req, res) => {
+  //Look up course
+  //if not existiting return 404
+  const song = songs.find((s) => s.id == parseInt(req.params.id));
+  if (!song) {
+    res.status(404).send("This song id does not exist");
+    return;
+  }
+
+  //validate
+  //if invalid return 400
+  const { error } = validateSong(req.body);
+  if (error) {
+    res.status(400).send(error.details[0].message);
+    return;
+  }
+
+  //update course
+  song.name = req.body.name;
+  res.send(song);
+  //return the updated course
+});
+
+app.delete("/api/songs/:id", (req, res) => {
+  //Look up the course
+  //Not existing, return 404
+  const song = songs.find((s) => s.id == parseInt(req.params.id));
+  if (!song) {
+    res.status(404).send("This song id does not exist");
+    return;
+  }
+
+  //Delete
+  const index = songs.indexOf(song);
+  songs.splice(index, 1);
+  //Return the removed course
+  res.send(song);
+});
+
+function validateSong(song) {
+  const schema = {
+    name: Joi.string().min(3).required(),
+  };
+
+  return Joi.validate(song, schema);
+}
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on Port ${port}...`));
